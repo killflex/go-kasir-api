@@ -3,15 +3,18 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"go-kasir-api/database"
 	"net/http"
-	"os"
+	"strings"
+
+	"github.com/spf13/viper"
 )
 
-type Produk struct {
+type Product struct {
 	ID    int    `json:"id"`
 	Name  string `json:"name"`
-	Harga string `json:"harga"`
-	Stok  int    `json:"stok"`
+	Price string `json:"price"`
+	Stock  int    `json:"stock"`
 }
 
 type Category struct {
@@ -20,10 +23,15 @@ type Category struct {
 	Description string `json:"description"`
 }
 
+type Config struct {
+	Port string `mapstructure:"PORT"`
+	DBconn string `mapstructure:"DB_CONN"`
+}
+
 var produk = []Produk{
-	{ID: 1, Name: "Indomie Goreng", Harga: "Rp 3.500", Stok: 100},
-	{ID: 2, Name: "Teh Botol Sosro", Harga: "Rp 5.000", Stok: 50},
-	{ID: 3, Name: "Aqua 600ml", Harga: "Rp 4.000", Stok: 200},
+	{ID: 1, Name: "Indomie Goreng", Price: "Rp 3.500", Stock: 100},
+	{ID: 2, Name: "Teh Botol Sosro", Price: "Rp 5.000", Stock: 50},
+	{ID: 3, Name: "Aqua 600ml", Price: "Rp 4.000", Stock: 200},
 }
 
 var category = []Category{
@@ -241,6 +249,21 @@ func CategoryByIDHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+
+	config := Config{
+		Port:   viper.GetString("PORT"),
+		DBconn: viper.GetString("DB_CONN"),
+	}
+
+	db, err := database.Connect(config.DBconn)
+	if err != nil {
+		fmt.Println("Error connecting to the database:", err)
+		return
+	}
+	defer db.Close()
+
 	// GET localhost:8080/health
 	http.HandleFunc("/health", healthHandler)
 
@@ -264,7 +287,7 @@ func main() {
 
 	// Serving HTTP Service on 8080 port
 	fmt.Println("Starting server on :8080")
-	port := os.Getenv("PORT")
+	port := config.Port
 	if port == "" {
 		port = "8080"
 	}
