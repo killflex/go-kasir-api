@@ -262,8 +262,13 @@ func main() {
 	// DELETE localhost:8080/category/{id} (delete by ID)
 	http.HandleFunc("/category/", CategoryByIDHandler)
 
+	// Serving HTTP Service on 8080 port
 	fmt.Println("Starting server on :8080")
-	if err := http.ListenAndServe(":"+os.Getenv("PORT"), nil); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		fmt.Println("Error starting server:", err)
 	}
 }
