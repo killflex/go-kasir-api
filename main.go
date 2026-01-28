@@ -14,7 +14,7 @@ type Product struct {
 	ID    int    `json:"id"`
 	Name  string `json:"name"`
 	Price string `json:"price"`
-	Stock  int    `json:"stock"`
+	Stock int    `json:"stock"`
 }
 
 type Category struct {
@@ -24,18 +24,18 @@ type Category struct {
 }
 
 type Config struct {
-	Port string `mapstructure:"PORT"`
+	Port   string `mapstructure:"PORT"`
 	DBconn string `mapstructure:"DB_CONN"`
 }
 
-var produk = []Produk{
+var produk = []Product{
 	{ID: 1, Name: "Indomie Goreng", Price: "Rp 3.500", Stock: 100},
 	{ID: 2, Name: "Teh Botol Sosro", Price: "Rp 5.000", Stock: 50},
 	{ID: 3, Name: "Aqua 600ml", Price: "Rp 4.000", Stock: 200},
 }
 
 var category = []Category{
-	{ID: 1, Name: "Makanan", Description: "Produk makanan ringan dan berat"},
+	{ID: 1, Name: "Makanan", Description: "Product makanan ringan dan berat"},
 	{ID: 2, Name: "Minuman", Description: "Berbagai jenis minuman kemasan"},
 	{ID: 3, Name: "Sembako", Description: "Kebutuhan pokok sehari-hari"},
 	{ID: 4, Name: "Snack", Description: "Camilan dan makanan ringan"},
@@ -66,7 +66,7 @@ func produkHandler(w http.ResponseWriter, r *http.Request) {
 			httpError(w, http.StatusInternalServerError, "Failed to encode produk data")
 		}
 	case "POST":
-		var newProduk Produk
+		var newProduk Product
 		if err := json.NewDecoder(r.Body).Decode(&newProduk); err != nil {
 			httpError(w, http.StatusBadRequest, "Invalid request payload")
 			return
@@ -84,7 +84,7 @@ func produkHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"data":    newProduk,
-			"message": "Produk created successfully",
+			"message": "Product created successfully",
 		}); err != nil {
 			httpError(w, http.StatusInternalServerError, "Failed to encode new produk data")
 		}
@@ -112,9 +112,9 @@ func produkByIDHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		httpError(w, http.StatusNotFound, "Produk not found")
+		httpError(w, http.StatusNotFound, "Product not found")
 	case "PUT":
-		var updatedProduk Produk
+		var updatedProduk Product
 		if err := json.NewDecoder(r.Body).Decode(&updatedProduk); err != nil {
 			httpError(w, http.StatusBadRequest, "Invalid request payload")
 			return
@@ -126,28 +126,28 @@ func produkByIDHandler(w http.ResponseWriter, r *http.Request) {
 				produk[i] = updatedProduk
 				if err := json.NewEncoder(w).Encode(map[string]interface{}{
 					"data":    updatedProduk,
-					"message": "Produk updated successfully",
+					"message": "Product updated successfully",
 				}); err != nil {
 					httpError(w, http.StatusInternalServerError, "Failed to encode updated produk data")
 				}
 				return
 			}
 		}
-		httpError(w, http.StatusNotFound, "Produk not found")
+		httpError(w, http.StatusNotFound, "Product not found")
 	case "DELETE":
 		for i, p := range produk {
 			if fmt.Sprintf("%d", p.ID) == id {
 				produk = append(produk[:i], produk[i+1:]...)
 				if err := json.NewEncoder(w).Encode(map[string]interface{}{
 					"id":      p.ID,
-					"message": "Produk deleted successfully",
+					"message": "Product deleted successfully",
 				}); err != nil {
 					httpError(w, http.StatusInternalServerError, "Failed to encode delete confirmation message")
 				}
 				return
 			}
 		}
-		httpError(w, http.StatusNotFound, "Produk not found")
+		httpError(w, http.StatusNotFound, "Product not found")
 	default:
 		httpError(w, http.StatusMethodNotAllowed, "Method not allowed")
 	}
