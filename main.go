@@ -3,12 +3,19 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"go-kasir-api/database"
+	"kasir-api/database"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/spf13/viper"
 )
+
+type Config struct {
+	Port   string `mapstructure:"PORT"`
+	DBconn string `mapstructure:"DB_CONN"`
+}
 
 type Product struct {
 	ID    int    `json:"id"`
@@ -21,11 +28,6 @@ type Category struct {
 	ID          int    `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-}
-
-type Config struct {
-	Port   string `mapstructure:"PORT"`
-	DBconn string `mapstructure:"DB_CONN"`
 }
 
 var produk = []Product{
@@ -250,16 +252,21 @@ func CategoryByIDHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	viper.AutomaticEnv()
-	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	config := Config{
 		Port:   viper.GetString("PORT"),
 		DBconn: viper.GetString("DB_CONN"),
 	}
 
+	if _, err := os.Stat(".env"); err == nil {
+		viper.SetConfigFile(".env")
+		_ = viper.ReadInConfig()
+	}
+
 	db, err := database.Connect(config.DBconn)
 	if err != nil {
-		fmt.Println("Error connecting to the database:", err)
+		log.Fatal("Error connecting to the database: %v\n", err)
 		return
 	}
 	defer db.Close()
@@ -285,13 +292,8 @@ func main() {
 	// DELETE localhost:8080/category/{id} (delete by ID)
 	http.HandleFunc("/category/", CategoryByIDHandler)
 
-	// Serving HTTP Service on 8080 port
-	fmt.Println("Starting server on :8080")
-	port := config.Port
-	if port == "" {
-		port = "8080"
-	}
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		fmt.Println("Error starting server:", err)
+	fmt.Printf("Server running on http://localhost:%s\n", config.Port)
+	if err := http.ListenAndServe(":"+config.Port, nil); err != nil {
+		fmt.Printf("Error starting server %v\n", err)
 	}
 }
