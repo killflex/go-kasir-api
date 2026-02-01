@@ -9,7 +9,6 @@ import (
 
 func Connect(dbConn string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", dbConn)
-
 	if err != nil {
 		return nil, err
 	}

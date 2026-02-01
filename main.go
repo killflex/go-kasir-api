@@ -1,12 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"kasir-api/database"
+	"kasir-api/handler"
+	"kasir-api/repository"
+	"kasir-api/service"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -44,213 +45,14 @@ var category = []Category{
 	{ID: 5, Name: "Perlengkapan Rumah", Description: "Alat dan perlengkapan rumah tangga"},
 }
 
-func httpError(w http.ResponseWriter, code int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	if err := json.NewEncoder(w).Encode(map[string]string{"error": message}); err != nil {
-		fmt.Println("Failed to encode error message:", err)
-	}
-}
-
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(map[string]string{"message": "API is running"}); err != nil {
-		httpError(w, http.StatusInternalServerError, "Failed to encode health check response")
-	}
-}
-
-func produkHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	switch r.Method {
-	case "GET":
-		if err := json.NewEncoder(w).Encode(produk); err != nil {
-			httpError(w, http.StatusInternalServerError, "Failed to encode produk data")
-		}
-	case "POST":
-		var newProduk Product
-		if err := json.NewDecoder(r.Body).Decode(&newProduk); err != nil {
-			httpError(w, http.StatusBadRequest, "Invalid request payload")
-			return
-		}
-
-		maxID := 0
-		for _, p := range produk {
-			if p.ID > maxID {
-				maxID = p.ID
-			}
-		}
-		newProduk.ID = maxID + 1
-
-		produk = append(produk, newProduk)
-		w.WriteHeader(http.StatusCreated)
-		if err := json.NewEncoder(w).Encode(map[string]interface{}{
-			"data":    newProduk,
-			"message": "Product created successfully",
-		}); err != nil {
-			httpError(w, http.StatusInternalServerError, "Failed to encode new produk data")
-		}
-	default:
-		httpError(w, http.StatusMethodNotAllowed, "Method not allowed")
-	}
-}
-
-func produkByIDHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	id := r.URL.Path[len("/api/produk/"):]
-	if id == "" {
-		httpError(w, http.StatusBadRequest, "Product ID is required")
-		return
-	}
-
-	switch r.Method {
-	case "GET":
-		for _, p := range produk {
-			if fmt.Sprintf("%d", p.ID) == id {
-				if err := json.NewEncoder(w).Encode(p); err != nil {
-					httpError(w, http.StatusInternalServerError, "Failed to encode produk data")
-				}
-				return
-			}
-		}
-		httpError(w, http.StatusNotFound, "Product not found")
-	case "PUT":
-		var updatedProduk Product
-		if err := json.NewDecoder(r.Body).Decode(&updatedProduk); err != nil {
-			httpError(w, http.StatusBadRequest, "Invalid request payload")
-			return
-		}
-
-		for i, p := range produk {
-			if fmt.Sprintf("%d", p.ID) == id {
-				updatedProduk.ID = p.ID
-				produk[i] = updatedProduk
-				if err := json.NewEncoder(w).Encode(map[string]interface{}{
-					"data":    updatedProduk,
-					"message": "Product updated successfully",
-				}); err != nil {
-					httpError(w, http.StatusInternalServerError, "Failed to encode updated produk data")
-				}
-				return
-			}
-		}
-		httpError(w, http.StatusNotFound, "Product not found")
-	case "DELETE":
-		for i, p := range produk {
-			if fmt.Sprintf("%d", p.ID) == id {
-				produk = append(produk[:i], produk[i+1:]...)
-				if err := json.NewEncoder(w).Encode(map[string]interface{}{
-					"id":      p.ID,
-					"message": "Product deleted successfully",
-				}); err != nil {
-					httpError(w, http.StatusInternalServerError, "Failed to encode delete confirmation message")
-				}
-				return
-			}
-		}
-		httpError(w, http.StatusNotFound, "Product not found")
-	default:
-		httpError(w, http.StatusMethodNotAllowed, "Method not allowed")
-	}
-}
-
-func CategoryHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	switch r.Method {
-	case "GET":
-		if err := json.NewEncoder(w).Encode(category); err != nil {
-			httpError(w, http.StatusInternalServerError, "Failed to encode category data")
-		}
-	case "POST":
-		var newCategory Category
-		if err := json.NewDecoder(r.Body).Decode(&newCategory); err != nil {
-			httpError(w, http.StatusBadRequest, "Invalid request payload")
-		}
-
-		maxID := 0
-		for _, p := range category {
-			if p.ID > maxID {
-				maxID = p.ID
-			}
-		}
-		newCategory.ID = maxID + 1
-
-		category = append(category, newCategory)
-		w.WriteHeader(http.StatusCreated)
-		if err := json.NewEncoder(w).Encode(map[string]interface{}{
-			"data":    newCategory,
-			"message": "Category created successfully",
-		}); err != nil {
-			httpError(w, http.StatusInternalServerError, "Failed to encode new category data")
-		}
-	default:
-		httpError(w, http.StatusInternalServerError, "Method not allowed")
-	}
-}
-
-func CategoryByIDHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	id := r.URL.Path[len("/category/"):]
-	if id == "" {
-		httpError(w, http.StatusBadRequest, "Category ID is required")
-		return
-	}
-
-	switch r.Method {
-	case "GET":
-		for _, p := range category {
-			if fmt.Sprintf("%d", p.ID) == id {
-				if err := json.NewEncoder(w).Encode(p); err != nil {
-					httpError(w, http.StatusInternalServerError, "Failed to encode category data by ID")
-				}
-				return
-			}
-		}
-		httpError(w, http.StatusNotFound, "Category ID is not found")
-	case "PUT":
-		var updatedCategory Category
-		if err := json.NewDecoder(r.Body).Decode(&updatedCategory); err != nil {
-			httpError(w, http.StatusBadRequest, "Invalid request payload")
-			return
-		}
-
-		for i, p := range category {
-			if fmt.Sprintf("%d", p.ID) == id {
-				updatedCategory.ID = p.ID
-				category[i] = updatedCategory
-				if err := json.NewEncoder(w).Encode(map[string]interface{}{
-					"data":    updatedCategory,
-					"message": "Category updated successfully",
-				}); err != nil {
-					httpError(w, http.StatusInternalServerError, "Failed to encode updated category data")
-				}
-				return
-			}
-		}
-		httpError(w, http.StatusNotFound, "Category by ID not found")
-	case "DELETE":
-		for i, p := range category {
-			if fmt.Sprintf("%d", p.ID) == id {
-				category = append(category[:i], category[i+1:]...)
-				if err := json.NewEncoder(w).Encode(map[string]interface{}{
-					"id":      p.ID,
-					"message": "Category deleted successfully",
-				}); err != nil {
-					httpError(w, http.StatusInternalServerError, "Failed to encode delete confirmation message")
-				}
-				return
-			}
-		}
-		httpError(w, http.StatusNotFound, "Category by ID not found")
-	default:
-		httpError(w, http.StatusMethodNotAllowed, "Method is not allowed")
-	}
-}
-
 func main() {
+	viper.SetConfigFile(".env")
+	viper.SetConfigType("env")
+
+	if err := viper.ReadInConfig(); err != nil {
+		log.Printf("Warning: .env file not found: %v\n", err)
+	}
+
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
@@ -259,20 +61,21 @@ func main() {
 		DBconn: viper.GetString("DB_CONN"),
 	}
 
-	if _, err := os.Stat(".env"); err == nil {
-		viper.SetConfigFile(".env")
-		_ = viper.ReadInConfig()
-	}
-
 	db, err := database.Connect(config.DBconn)
 	if err != nil {
-		log.Fatal("Error connecting to the database: %v\n", err)
-		return
+		log.Fatalf("Error connecting to the database: %v\n", err)
 	}
 	defer db.Close()
 
+	productRepo := repository.NewProductRepository(db)
+	productService := service.NewProductService(productRepo)
+	productHandler := handler.NewProductHandler(productService)
+
+	http.HandleFunc("/api/product", productHandler.HandleProducts)
+	http.HandleFunc("/api/product/", productHandler.HandleProductByID)
+
 	fmt.Printf("Server running on http://localhost:%s\n", config.Port)
 	if err := http.ListenAndServe(":"+config.Port, nil); err != nil {
-		fmt.Printf("Error starting server %v\n", err)
+		log.Fatalf("Error starting server %v\n", err)
 	}
 }
