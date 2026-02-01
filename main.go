@@ -271,27 +271,6 @@ func main() {
 	}
 	defer db.Close()
 
-	// GET localhost:8080/health
-	http.HandleFunc("/health", healthHandler)
-
-	// GET localhost:8080/api/produk (get all)
-	// POST localhost:8080/api/produk (create new)
-	http.HandleFunc("/api/produk", produkHandler)
-
-	// GET localhost:8080/api/produk/{id} (get by ID)
-	// PUT localhost:8080/api/produk/{id} (update by ID)
-	// DELETE localhost:8080/api/produk/{id} (delete by ID)
-	http.HandleFunc("/api/produk/", produkByIDHandler)
-
-	// GET localhost:8080/category (get all category)
-	// POST localhost:8080/category (create new category)
-	http.HandleFunc("/category", CategoryHandler)
-
-	// GET localhost:8080/category/{id} (get by ID)
-	// PUT localhost:8080/category/{id} (update by ID)
-	// DELETE localhost:8080/category/{id} (delete by ID)
-	http.HandleFunc("/category/", CategoryByIDHandler)
-
 	fmt.Printf("Server running on http://localhost:%s\n", config.Port)
 	if err := http.ListenAndServe(":"+config.Port, nil); err != nil {
 		fmt.Printf("Error starting server %v\n", err)
