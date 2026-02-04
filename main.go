@@ -37,14 +37,6 @@ var produk = []Product{
 	{ID: 3, Name: "Aqua 600ml", Price: "Rp 4.000", Stock: 200},
 }
 
-var category = []Category{
-	{ID: 1, Name: "Makanan", Description: "Product makanan ringan dan berat"},
-	{ID: 2, Name: "Minuman", Description: "Berbagai jenis minuman kemasan"},
-	{ID: 3, Name: "Sembako", Description: "Kebutuhan pokok sehari-hari"},
-	{ID: 4, Name: "Snack", Description: "Camilan dan makanan ringan"},
-	{ID: 5, Name: "Perlengkapan Rumah", Description: "Alat dan perlengkapan rumah tangga"},
-}
-
 func main() {
 	viper.SetConfigFile(".env")
 	viper.SetConfigType("env")
