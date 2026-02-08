@@ -13,8 +13,8 @@ func NewProductService(repo *repository.ProductRepository) *ProductService {
 	return &ProductService{repo: repo}
 }
 
-func (s *ProductService) GetAllProduct() ([]model.Product, error) {
-	return s.repo.GetAllProduct()
+func (s *ProductService) GetAllProduct(name string) ([]model.Product, error) {
+	return s.repo.GetAllProduct(name)
 }
 
 func (s *ProductService) GetProductById(id int) (*model.Product, error) {

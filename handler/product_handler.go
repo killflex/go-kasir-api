@@ -20,13 +20,15 @@ func NewProductHandler(service *service.ProductService) *ProductHandler {
 func (h *ProductHandler) GetAllProduct(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	products, err := h.service.GetAllProduct()
+	name := r.URL.Query().Get("name")
+
+	products, err := h.service.GetAllProduct(name)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		RespondError(w, http.StatusInternalServerError, "Failed to retrieve products", err)
 		return
 	}
 
-	json.NewEncoder(w).Encode(products)
+	RespondSuccess(w, http.StatusOK, "Products found",products)
 }
 
 func (h *ProductHandler) GetProductById(w http.ResponseWriter, r *http.Request) {
@@ -35,19 +37,24 @@ func (h *ProductHandler) GetProductById(w http.ResponseWriter, r *http.Request) 
 	idStr := strings.TrimPrefix(r.URL.Path, "/api/product/")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid Product ID", http.StatusBadRequest)
+		RespondError(w, http.StatusBadRequest, "Invalid product ID", err)
 		return
 	}
 
 	product, err := h.service.GetProductById(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		RespondError(w, http.StatusBadGateway, "Failed to retrieve product", err)
 		return
 	}
 
-	json.NewEncoder(w).Encode(product)
+	if err := json.NewEncoder(w).Encode(product); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+	RespondSuccess(w, http.StatusOK, "Product found", product)
 }
 
+// TODO: Change the responses with response helper!
 func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -78,10 +85,13 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "Product created successfully",
 		"data":    product,
-	})
+	}); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
@@ -108,7 +118,10 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(product)
+	if err := json.NewEncoder(w).Encode(product); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
@@ -127,9 +140,12 @@ func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{
+	if err := json.NewEncoder(w).Encode(map[string]string{
 		"message": "Product deleted successfully",
-	})
+	}); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *ProductHandler) HandleProducts(w http.ResponseWriter, r *http.Request) {
